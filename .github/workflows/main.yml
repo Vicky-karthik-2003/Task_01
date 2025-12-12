@@ -1,18 +1,22 @@
-
-name: Print hello 
+name: Build
 
 on:
-  workflow_dispatch:
-      
+  push:
+    branches:
+      - master
+
 
 jobs:
   build:
-    runs-on: [self-hosted, Windows]
-
+    name: Build and analyze
+    runs-on: ubuntu-latest
+    
     steps:
-      - name: Get Your Code
-        uses: actions/checkout@v2
-
-      - name: Say Hello to the World
-        run: echo "Hello, World!"   
-
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+      - uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      
