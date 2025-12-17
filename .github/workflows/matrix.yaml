@@ -15,16 +15,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Detect service folders
+      - name: Detect service directories
         id: set-services
         run: |
-          SERVICES=$(ls -d *-service 2>/dev/null | jq -R -s -c 'split("\n")[:-1]')
+          SERVICES=$(find . -maxdepth 1 -type d -name "*-service" \
+            | sed 's|./||' \
+            | jq -R -s -c 'split("\n")[:-1]')
+
           echo "Detected services: $SERVICES"
           echo "services=$SERVICES" >> "$GITHUB_OUTPUT"
 
   build-docker:
     needs: extract-services
     runs-on: ubuntu-latest
+
+    if: needs.extract-services.outputs.services != '[]'
 
     strategy:
       matrix:
@@ -35,6 +40,5 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build \
-            -t myorg/${{ matrix.service }} \
-            ./${{ matrix.service }}
+          echo "Building ${{ matrix.service }}"
+          docker build -t myorg/${{ matrix.service }} ./${{ matrix.service }}
