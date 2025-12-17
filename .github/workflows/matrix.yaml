@@ -2,51 +2,39 @@ name: Build Docker Services
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   extract-services:
-    name: Extract services list
     runs-on: ubuntu-latest
 
     outputs:
       services: ${{ steps.set-services.outputs.services }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Extract services from services folder
+      - name: Detect service folders
         id: set-services
-        shell: bash
         run: |
-          SERVICES=$(ls -1 services | jq -R -s -c 'split("\n")[:-1]')
+          SERVICES=$(ls -d *-service 2>/dev/null | jq -R -s -c 'split("\n")[:-1]')
           echo "Detected services: $SERVICES"
           echo "services=$SERVICES" >> "$GITHUB_OUTPUT"
 
   build-docker:
-    name: Build Docker images
     needs: extract-services
     runs-on: ubuntu-latest
 
     strategy:
-      fail-fast: false
       matrix:
         service: ${{ fromJson(needs.extract-services.outputs.services) }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Build Docker image
-        shell: bash
         run: |
-          echo "======================================"
-          echo "Building Docker image for: ${{ matrix.service }}"
-          echo "======================================"
-
           docker build \
-            -t myorg/${{ matrix.service }}:latest \
-            ./services/${{ matrix.service }}
+            -t myorg/${{ matrix.service }} \
+            ./${{ matrix.service }}
